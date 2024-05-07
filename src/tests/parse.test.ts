@@ -37,7 +37,10 @@ const testCases = [
   },
   {
     name: "Parses correctly formatted ssml and ignores P tags",
-    content: `<speak><p><s>This is a sentence.</s><s>This is another sentence.</s><p><speak>`,
+    // Jugging by tittle I believe this content was wrong,
+    // because it ended with open tag <speak> instead of end tag </speak>
+    // content: `<speak><p><s>This is a sentence.</s><s>This is another sentence.</s><p></speak>`,
+    content: `<speak><p><s>This is a sentence.</s><s>This is another sentence.</s><p></speak>`,
     expected: ["This is a sentence.", "This is another sentence."],
   },
 ];

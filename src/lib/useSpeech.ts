@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 
-import { PlayingState } from './speech';
+import { PlayingState, createSpeechEngine, SpeechEngine } from './speech';
 
 /*
   @description
@@ -12,12 +12,52 @@ import { PlayingState } from './speech';
 */
 const useSpeech = (sentences: Array<string>) => {
   const [currentSentenceIdx, setCurrentSentenceIdx] = useState(0);
-  const [currentWordRange, setCurrentWordRange] = useState([0, 0]);
+  const [currentWordRange, setCurrentWordRange] = useState<[number, number]>([0, 0]);
 
   const [playbackState, setPlaybackState] = useState<PlayingState>("paused");
 
-  const play = () => {};
-  const pause = () => {};
+  // this is a small trick to have proper dependencies
+  // this is equivalent to react useEffectEvent hook that lets you extract non-reactive logic into an Effect Event
+  // https://react.dev/reference/react/experimental_useEffectEvent
+  const onEndRef = useRef(() => {});
+  onEndRef.current = () => {
+    if (currentSentenceIdx === sentences.length - 1) {
+      // No more sentences to read.
+      setCurrentSentenceIdx(0);
+      setCurrentWordRange([0, 0]);
+      return;
+    }
+    const nextIndex = currentSentenceIdx + 1;
+    speechEngine.load(sentences[nextIndex]);
+    speechEngine.play();
+    setCurrentSentenceIdx(nextIndex);
+  }
+
+  const speechEngine: SpeechEngine = createSpeechEngine({
+    onBoundary: (e: SpeechSynthesisEvent) => {
+      setCurrentWordRange([e.charIndex, e.charIndex + e.charLength]);
+    },
+    onEnd: () => onEndRef.current(),
+    onStateUpdate: setPlaybackState,
+  });
+
+  const reset = () => {
+    if (playbackState === 'playing') {
+      speechEngine.cancel();
+    }
+    setCurrentSentenceIdx(0);
+    setCurrentWordRange([0, 0]);
+  }
+
+  const play = async () => {
+    speechEngine.load(sentences[currentSentenceIdx]);
+    speechEngine.play();
+  };
+
+  const pause = () => {
+    speechEngine.pause();
+    // setCurrentWordRange([0, 0]);
+  };
 
   return {
     currentSentenceIdx,
@@ -25,6 +65,7 @@ const useSpeech = (sentences: Array<string>) => {
     playbackState,
     play,
     pause,
+    reset,
   };
 };
 

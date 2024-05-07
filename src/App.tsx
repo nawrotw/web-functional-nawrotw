@@ -1,20 +1,34 @@
 import './App.css';
 
 import { Controls } from './components/Controls';
-import { CurrentlyReading } from './components/CurrentlyReading';
+import { useEffect, useState } from "react";
+import { fetchContent, parseContentIntoSentences } from "./lib/content";
+import { useSpeech } from "./lib/useSpeech";
+import { CurrentlyReading } from "./components/CurrentlyReading";
 
 function App() {
-  // const [sentences, setSentences] = useState<Array<string>>([]);
-  // const { currentWord, currentSentence, controls } = useSpeech(sentences);
+  const [sentences, setSentences] = useState<Array<string>>([]);
+  const { play, pause, reset, playbackState, currentWordRange, currentSentenceIdx } = useSpeech(sentences);
+
+  const loadSentences = async () => {
+    const contentStr = await fetchContent();
+    const sentences = parseContentIntoSentences(contentStr);
+    reset();
+    setSentences(sentences);
+  }
+
+  useEffect(() => {
+    loadSentences();
+  }, []);
+
 
   return (
     <div className="App">
-      <h1>Text to speech</h1>
       <div>
-        <CurrentlyReading/>
+        <CurrentlyReading sentences={sentences} currentWordRange={currentWordRange} currentSentenceIdx={currentSentenceIdx}/>
       </div>
       <div>
-        <Controls/>
+        <Controls play={play} pause={pause} loadNewContent={loadSentences} state={playbackState}/>
       </div>
     </div>
   );
